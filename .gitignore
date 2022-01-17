@@ -302,6 +302,8 @@ sympy-plots-for-*.tex/
 *.pytxcode
 pythontex-files-*/
 
+__pycache__/
+
 # tcolorbox
 *.listing
 
