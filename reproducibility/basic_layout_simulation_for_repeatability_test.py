@@ -13,6 +13,7 @@ import datetime
 import time
 from sparkle import layout
 import rospkg
+import os
 
 import sys, getopt
 
@@ -100,7 +101,11 @@ for opt, arg in opts:
 
 clock_factor = max_update_rate*time_step
 
-logdir = '/home/refulgent/Cyverse/sparkle/'
+
+homedir = os.path.expanduser('~')
+logdir = homedir + '/Cyverse/sparkle/'
+os.makedirs(logdir, exist_ok=True)
+
 
 dt_object = datetime.datetime.fromtimestamp(time.time())
 dt = dt_object.strftime('%Y-%m-%d-%H-%M-%S-%f')
@@ -143,12 +148,13 @@ print("clock_factor = {}".format(clock_factor))
 
 time.sleep(15)
 
+rospack = rospkg.RosPack()
+sparkle_pkg =  rospack.get_path('sparkle')
 if enable_gui:
-    L.create(initial_world = '/home/refulgent/catvehicle_ws/src/sparkle/launch/threelanes.launch', clock_factor = clock_factor, rate = max_update_rate, newclock = newclock)
+    L.create(initial_world = sparkle_pkg + '/launch/threelanes.launch', clock_factor = clock_factor, rate = max_update_rate, newclock = newclock)
 else:
     L.create(clock_factor = clock_factor, rate = max_update_rate, newclock = newclock)
 
-rospack = rospkg.RosPack()
 robot_pkg = rospack.get_path(robot_model)
 
 L.spawn(include_laser="followers", dynamics = dynamics, robot_pkg = robot_pkg)
