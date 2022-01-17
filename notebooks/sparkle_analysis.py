@@ -70,6 +70,8 @@ run_id = "2d17d35c077fb9cc2d2e"
 run_id = "016eeb535255aa58ccee"
 run_id = "a0bd74de602fe4692f51"
 run_id = "fae74d175ff7f6293f18"
+run_id = "cf8de74918582d8506c2"
+run_id = "863cefbd79fabca6ac91"
 
 # Analysis
 cmd_speed =[]
@@ -185,7 +187,17 @@ for j in range(0, len(cmd_speed)):
     ld = lead_dist[j]
     rv = rel_vel[j]
     
+    max_start_time_1 = cs[0]['Time'].iloc[0]
+    max_start_time_2 = s[0]['Time'].iloc[0]
+    
+    min_end_time_1 = cs[0]['Time'].iloc[-1]
+    min_end_time_2 = s[0]['Time'].iloc[-1]
+
     for i, v in enumerate(cs):
+        if (max_start_time_1 < cs[i]['Time'].iloc[0]):
+            max_start_time_1 = cs[i]['Time'].iloc[0]
+        if (min_end_time_1 > cs[i]['Time'].iloc[-1]):
+            min_end_time_1 = cs[i]['Time'].iloc[-1]
         ax[j, 0].scatter(x = 'Time', y = 'linear.x', data = cs[i], s = 1, label = 'vehicle {}'.format(i))
         #ax[j, 0].legend()
         ax[j, 0].set_xlabel('Time', fontsize = 20)
@@ -194,15 +206,23 @@ for j in range(0, len(cmd_speed)):
         ax[j, 0].tick_params(axis='both', which='major', labelsize=18)
         ax[j, 0].tick_params(axis='both', which='minor', labelsize=16)
 
+    ax[j, 0].set_xlim(max_start_time_1, min_end_time_1)
 
     for i, v in enumerate(s):
-        ax[j, 1].scatter(x = 'Time', y = 'linear.x', data = s[i], s = 1, label = 'vehicle {}'.format(i))
+        if (max_start_time_2 < s[i]['Time'].iloc[0]):
+            max_start_time_2 = s[i]['Time'].iloc[0]
+        if (min_end_time_2 > s[i]['Time'].iloc[-1]):
+            min_end_time_2 = s[i]['Time'].iloc[-1]
+        ax[j, 1].scatter(x = s[i]['Time'], y = np.sqrt(s[i]['linear.x']**2 + s[i]['linear.y']**2), s = 1, label = 'vehicle {}'.format(i))
         #ax[j, 1].legend()
         ax[j, 1].set_xlabel('Time', fontsize = 20)
         ax[j, 1].set_ylabel('Speed m/s', fontsize = 20)
         ax[j, 1].set_title('Simulation {}'.format(j), fontsize = 24)
         ax[j, 1].tick_params(axis='both', which='major', labelsize=18)
         ax[j, 1].tick_params(axis='both', which='minor', labelsize=16)
+
+    ax[j, 1].set_xlim(max_start_time_2, min_end_time_2)
+
 # plt.suptitle("Run ID: {}".format(run_id), y = 1.001)
 plt.suptitle("Left: Commanded Speed. Right: Driving Speed\n Sparkle Simulation, Modified Approach", y = 1.001, fontsize = 32)
 plt.tight_layout()
@@ -288,8 +308,16 @@ fig, ax = plt.subplots(int(np.ceil(len(cmd_speed))), 2, figsize=(12, 18))
 ax = ax.reshape(len(cmd_speed), 2 )
 for j in range(0, len(cmd_speed)):
     
-    cs = posX[j]    
+    cs = posX[j]
+    max_start_time_1 = cs[0]['Time'].iloc[0]
+    min_end_time_1 = cs[0]['Time'].iloc[-1]
+    
     for i, v in enumerate(cs):
+        if (max_start_time_1 < cs[i]['Time'].iloc[0]):
+            max_start_time_1 = cs[i]['Time'].iloc[0]
+        if (min_end_time_1 > cs[i]['Time'].iloc[-1]):
+            min_end_time_1 = cs[i]['Time'].iloc[-1]
+            
         ax[j, 0].scatter(x = 'Time', y = 'pose.pose.position.x', data = cs[i], s = 1, label = 'vehicle {}'.format(i))
         #ax[j].legend()
         ax[j, 0].set_xlabel('Time [s]', fontsize = 20)
@@ -307,6 +335,9 @@ for j in range(0, len(cmd_speed)):
         ax[j, 1].tick_params(axis='both', which='major', labelsize=18)
         ax[j, 1].tick_params(axis='both', which='minor', labelsize=16)
         
+    ax[j, 0].set_xlim(max_start_time_1, min_end_time_1)
+    ax[j, 1].set_xlim(max_start_time_1, min_end_time_1)
+
 #plt.suptitle("Run ID: {}".format(run_id), y = 1.0001)
 plt.suptitle("Coordinates of Vehicles: Left: X, Right: Y\n Sparkle Simulation, Modified Approach", y = 1.001, fontsize = 32)
 plt.tight_layout()
@@ -354,10 +385,35 @@ def calc_rms(df_2dlist, key, overlap_plots = False):
 
     """
     rms_matrix = np.zeros((len(df_2dlist[0]), len(df_2dlist), len(df_2dlist)))
+
+    if key == 'pose.pose.position.x':
+        ylabel = 'X-coordinate [m]'
+    elif key== 'pose.pose.position.y':
+        ylabel = 'Y-coordinaye [m]'
+    elif key == 'linear.x':
+        ylabel = 'Speed [m/s]'
+    else:
+        ylabel = 'Message'
+    
+    figa = []
+    axa = []
+
+    if overlap_plots:
+        for kp in range(0, len(df_2dlist[0])):
+            f, a = plt.subplots(len(df_2dlist), len(df_2dlist))
+            f.set_figheight(f.get_figheight()*2)
+            f.set_figwidth(f.get_figwidth()*2)
+            figa.append(f)
+            axa.append(a)
+        sns.set_context("paper")
+
     # rms_matrix_msgs = np.zeros((len(df_2dlist[0]), len(df_2dlist), len(df_2dlist)))
     for ii in range(0, len(df_2dlist)):
         for jj in range(0, len(df_2dlist)):
             if (ii >= jj):
+                if overlap_plots:
+                    for vehicle  in range(0,len(df_2dlist[0])):
+                        axa[vehicle][ii,jj].axis('off')
                 continue
             df1 = pd.DataFrame()
             df2 = pd.DataFrame()
@@ -379,11 +435,13 @@ def calc_rms(df_2dlist, key, overlap_plots = False):
                 df1new, df2new = strymread.ts_sync(df1, df2, rate ='first', method = 'nearest')
 
                 if overlap_plots:
-                    fig, ax = bagpy.create_fig(1)
-                    ax[0].scatter(x = 'Time', y = 'Message', data = df1new, s= 20, label='Sim {}, Vehicle {}'.format(ii, vehicle))
-                    ax[0].scatter(x = 'Time', y = 'Message', data = df2new, s= 1, label='Sim {}, Vehicle {}'.format(jj, vehicle))
-                    ax[0].legend()
-                    fig.show()  
+                    #fig, ax = bagpy.create_fig(1)
+                    sns.lineplot(x = 'Time', y = 'Message', data = df1new, linewidth= 1.5, label='Sim {}, Vehicle {}'.format(ii, vehicle), ax = axa[vehicle][ii,jj])
+                    sns.lineplot(x = 'Time', y = 'Message', data = df2new, linewidth = 1.0, linestyle='--', label='Sim {}, Vehicle {}'.format(jj, vehicle), ax = axa[vehicle][ii,jj])
+                    axa[vehicle][ii,jj].set_xlabel('Time [s]')
+                    axa[vehicle][ii,jj].set_ylabel(ylabel)
+                    axa[vehicle][ii,jj].legend()
+                    #fig.show()  
                 # shift = strymread.time_shift(df1new,df2new,correlation_threshold=0.9)
                 
                 RMSf = (df1new['Message'] - df2new['Message'])**2  + (df1new['Time'] - df2new['Time'])**2  
@@ -393,6 +451,11 @@ def calc_rms(df_2dlist, key, overlap_plots = False):
                 rms_matrix[vehicle][ii][jj] = RMS
                 # rms_matrix_msgs[vehicle][ii][jj] = RMS_MSG
 
+    if overlap_plots:
+        for vehicle  in range(0,len(df_2dlist[0])):
+            figa[vehicle].tight_layout()
+            figa[vehicle].show()
+        
     return rms_matrix
 
 # TODO
@@ -454,15 +517,14 @@ def traj_calc_rms(df_2dlist, overlap_plots = False):
 
                 if overlap_plots:
                     fig, ax = bagpy.create_fig(1)
-                    ax[0].scatter(x = 'X', y = 'Y', data = df1xnew, s= 20, label='Sim {}, Vehicle {}'.format(ii, vehicle))
-                    ax[0].scatter(x = 'X', y = 'Y', data = df2xnew, s= 1, label='Sim {}, Vehicle {}'.format(jj, vehicle))
-                    ax[0].legend()
+                    ax.scatter(x = 'X', y = 'Y', data = df1xnew, s= 20, label='Sim {}, Vehicle {}'.format(ii, vehicle))
+                    ax.scatter(x = 'X', y = 'Y', data = df2xnew, s= 1, label='Sim {}, Vehicle {}'.format(jj, vehicle))
+                    ax.legend()
                     fig.show()  
-                
+            
                 RMSf = (df1xnew['X'] - df2xnew['X'])**2  + (df1xnew['Y'] - df2xnew['Y'])**2  
                 RMS = np.sqrt( np.mean(RMSf.values))
-                rms_matrix[vehicle][ii][jj] = RMS
-                
+                rms_matrix[vehicle][ii][jj] = RMS 
     return rms_matrix
 
 def plot_rmsheatmap(df_2dlist, rms_matrix, max_car, data_name = 'Velocity'):
